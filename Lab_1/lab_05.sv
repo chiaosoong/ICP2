@@ -24,7 +24,7 @@ module lab_05 #(parameter PERIOD = 10) (
 
     always #(PERIOD/2) clk = ~clk;
 
- 
+    
     covergroup covergroup_1 @(posedge clk);
         c1: coverpoint address;  // This creates automatic bins (7 bins)
         c2: coverpoint data;  // This creates automatic bins (64 bins)
@@ -75,6 +75,7 @@ module lab_05 #(parameter PERIOD = 10) (
 
     initial begin
         #10 address = 0;
+        #10 address = 1;
         #10 address = 2;
         #10 address = 3;
         #10 address = 4;
@@ -87,9 +88,10 @@ module lab_05 #(parameter PERIOD = 10) (
             data = i;
         end
 
+        $finish;
+
         // Task 1
         // Change the testbench to achieve 100% coverage for covergroup_1
-        // See above
 
         // Task 2
         // Change covergroup_2's data coverpoint so that it only creates 1 bin for { 0, 1, 2, 5, 100 } instead of 5 individual bins
@@ -98,35 +100,26 @@ module lab_05 #(parameter PERIOD = 10) (
         // Change covergroup_3 and achieve the same functionality without using the 'default' keyword        
     end
 
-
-    /*
-    initial begin
-        for (operations_t op = my_operation.first; op <= my_operation.last; op = op.next) begin  
-            my_operation = op;
-            for (registers_t register = my_register.first; register <= my_register.last; register = my_register.next) begin
-                my_register = register;
-                #10ns;
-                $display(register);
-            end           
-        end
-
         // Task 4
         // Change the testbench to achieve 100% cross coverage for covergroup_5 
-    end
-    */
     initial begin
-      operations_t op = my_operation.first;
-      do begin
-          my_operation = op;
-          registers_t reg = my_register.first;
-          do begin
-              my_register = reg;
-              #10ns;
-              $display("Testing Operation: %s, Register: %s", my_operation.name(), my_register.name());
-              reg = reg.next;
-          end while (reg != my_register.first);
-          op = op.next;
-      end while (op != my_operation.first);
+    operations_t op;
+    registers_t r;
+
+    op = my_operation.first;
+    do begin
+        my_operation = op;
+        r = my_register.first;
+        do begin
+            my_register = r;
+            #10ns;
+            $display("Testing Operation: %s, Register: %s",
+                      my_operation.name(), my_register.name());
+            r = r.next;
+        end while (r != my_register.first);
+        op = op.next;
+    end while (op != my_operation.first);
     end
+
 
 endmodule

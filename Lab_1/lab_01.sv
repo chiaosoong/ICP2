@@ -10,7 +10,6 @@ module lab_01;
 
     initial begin
 
-      /*
         randomize_data();
 
         randomize_my_state();
@@ -26,26 +25,11 @@ module lab_01;
 
         my_state = INIT;
         randomize_data_with_conditional_constraints();
-        */
 
-        // Task 1
-        // Create a function that randomizes my_state 16 times in a way that it excludes START from the randomization
-        task1();
-
-        // Task 2
-        // Create a function that randomizes data 16 times in a way that it is twice as likely to get data <= 10 than it is to get data >= 200 (and 0 likelihood for 10 < data < 200)
-        task2();
-
-        // Task 3
-        // Create a function that randomizes data 16 times in a way that if my_state is [S1:S6] then 50 <= data <= 60 or 100 <= data <= 150, otherwise data <= 20
-        my_state = S2;
-        //my_state = S6;
-        //my_state = INIT;
-        task3();
-
+        task1 t1
     end
 
-    function void task1;
+function void task1;
         $display("Task 1: Randomize 'my_state' 16 times excluding START");
         repeat(16) begin
             result = randomize(my_state) with {
@@ -64,8 +48,8 @@ module lab_01;
         repeat(16) begin
             result = randomize(data) with {
               data dist {
-                [0:10] := 2,
-                [200:255] := 1
+                [0:10] :/ 2,
+                [200:255] :/ 1
               };
             };
             $display(data);
@@ -99,7 +83,7 @@ module lab_01;
         $display("Randomize 'my_state'");
         repeat(16) begin
             result = randomize(my_state);
-            $display(my_state.name);  // .name will display the enum string name. Without it will print out number
+            $display(my_state.name);
         end
         $display("");
     endfunction
@@ -108,9 +92,9 @@ module lab_01;
     function void randomize_data_with_constraints;
         $display("Randomize 'data' with constraints");
         repeat(16) begin
-            result = randomize(data) with {
-                data >= 20;
-                data <= 115;
+            result = randomize(data) with { 
+                data >= 20; 
+                data <= 115; 
             };
             $display(data);
         end
@@ -121,12 +105,12 @@ module lab_01;
     function void randomize_my_state_with_constraints;
         $display("Randomize 'my_state' with constraints");
         repeat(16) begin
-            result = randomize(my_state) with {
+            result = randomize(my_state) with { 
                 my_state inside {
-                    [INIT:S1],
-                    S3,
+                    [INIT:S1], 
+                    S3, 
                     S6
-                };
+                }; 
             };
             $display(my_state.name);
         end
@@ -137,11 +121,11 @@ module lab_01;
     function void randomize_my_state_with_dist_constraints;
         $display("Randomize 'my_state' with dist constraints");
         repeat(16) begin
-            result = randomize(my_state) with {
+            result = randomize(my_state) with { 
                 my_state dist {
-                    [INIT:S1] := 3, // States not specified here has weight equal to 0
+                    [INIT:S1] := 3, 
                     [S4:S6] := 1
-                };
+                }; 
             };
             $display(my_state.name);
         end
@@ -152,9 +136,9 @@ module lab_01;
     function void randomize_data_with_conditional_constraints;
         $display("Randomize 'data' with conditional constraints");
         repeat(16) begin
-            result = randomize(data) with {
-                my_state == INIT -> data < 50;
-                my_state == S2 -> data > 100;
+            result = randomize(data) with { 
+                my_state == INIT -> data < 50; 
+                my_state == S2 -> data > 100; 
             };
             $display(data);
         end
