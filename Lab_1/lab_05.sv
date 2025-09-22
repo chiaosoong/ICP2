@@ -99,6 +99,7 @@ module lab_05 #(parameter PERIOD = 10) (
     end
 
 
+    /*
     initial begin
         for (operations_t op = my_operation.first; op <= my_operation.last; op = op.next) begin  
             my_operation = op;
@@ -111,6 +112,21 @@ module lab_05 #(parameter PERIOD = 10) (
 
         // Task 4
         // Change the testbench to achieve 100% cross coverage for covergroup_5 
+    end
+    */
+    initial begin
+      operations_t op = my_operation.first;
+      do begin
+          my_operation = op;
+          registers_t reg = my_register.first;
+          do begin
+              my_register = reg;
+              #10ns;
+              $display("Testing Operation: %s, Register: %s", my_operation.name(), my_register.name());
+              reg = reg.next;
+          end while (reg != my_register.first);
+          op = op.next;
+      end while (op != my_operation.first);
     end
 
 endmodule
