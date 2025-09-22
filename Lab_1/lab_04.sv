@@ -42,6 +42,7 @@ module lab_04 #(parameter PERIOD = 10) (
     // Assert that if a is high and next cycle b is high, then c must be high in the cycle after
     // If a is low we don't care
     // If a is high and next cycle b is low, we don't care about c
+    // If @ Cycle N : a == 1 and @ Cycle N+1 : b == 1, @ Cycle N+2 c must be 1
     property a_b_c_checker;
         @(posedge clk) (a ##1 b) |=> c;
     endproperty
@@ -53,6 +54,30 @@ module lab_04 #(parameter PERIOD = 10) (
     // But if a and c are high this cycle and reset happens we don't care about b anymore
     assert_6 : assert property ( @(posedge clk) disable iff (reset) (a && c) |-> ##2 b );
 
+    // if b, c, and d are high this cycle, then d must be high 2 cycles later.
+    property b_c_d_checker;
+      @(posedge clk) (b && c && d) |-> ##2 d;
+    endproperty
+
+    assert_task1: assert property (b_c_d_checker);
+
+    property b_c_d_checker_task2;
+      @(posedge clk) disable iff (reset) (b && c && d) |-> ##2 d;
+    endproperty
+
+    assert_task2: assert property (b_c_d_checker_task2);
+
+    property data_checker;
+      @(posedge clk) data <= 200;
+    endproperty
+
+    assert_task3: assert property (data_checker);
+
+    property a_b_c_d_checker;
+        @(posedge clk) (a ##1 c ##1 b) |=> d;
+    endproperty
+
+    assert_task4 : assert property (a_b_c_d_checker);
 
     initial begin
         reset = 0;
@@ -110,16 +135,20 @@ module lab_04 #(parameter PERIOD = 10) (
 
         // Task 1
         // Add an assertion that checks if b, c, and d are high this cycle, then d must be high 2 cycles later
+        assert_task1();
 
         // Task 2
         // Same as Task 1 except that reset disables the check
+        //assert_task2();
 
         // Task 3
         // Add an assertion that checks data <= 200 at positive clock edges
+        //assert_task3;
 
         // Task 4
         // Add an assertion that checks if a is high this cycle, and c is high the cycle after, and b is high 2 cycles after a was high, then d must be high 3 cycles after a was high
         // So for example if a is high at cycle 1 and c is high at cycle 2 and b is high at cycle 3 then d must be high at cycle 4
+        //assert_task4();
 
     end
 

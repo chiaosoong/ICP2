@@ -24,7 +24,7 @@ module lab_05 #(parameter PERIOD = 10) (
 
     always #(PERIOD/2) clk = ~clk;
 
-    
+ 
     covergroup covergroup_1 @(posedge clk);
         c1: coverpoint address;  // This creates automatic bins (7 bins)
         c2: coverpoint data;  // This creates automatic bins (64 bins)
@@ -34,7 +34,8 @@ module lab_05 #(parameter PERIOD = 10) (
     covergroup covergroup_2 @(posedge clk);
         c1: coverpoint address;  // This creates automatic bins (7 bins)
         c2: coverpoint data {
-            bins data_bin[] = { 0, 1, 2, 5, 100 };  // This creates custom bins (5 bins)
+            //bins data_bin[] = { 0, 1, 2, 5, 100 };  // This creates custom bins (5 bins)
+            bins data_bin_5 = { 0, 1, 2, 5, 100 };  // This creates one bin
         }
     endgroup: covergroup_2
 
@@ -43,7 +44,8 @@ module lab_05 #(parameter PERIOD = 10) (
         c1: coverpoint address;  // This creates automatic bins (7 bins)
         c2: coverpoint data {
             bins data_bin[] = { 0, 1, 2, 5, 100 };  // This creates custom bins (5 bins)
-            bins data_bin_rest = default;  // This creates 1 bin for all the remaining values
+            //bins data_bin_rest = default;  // This creates 1 bin for all the remaining values
+            bins data_bin_rest = { [3:4], [6:99], [101:$] };  // This creates 1 bin for all the remaining values
         }
     endgroup: covergroup_3
 
@@ -80,13 +82,14 @@ module lab_05 #(parameter PERIOD = 10) (
         #10 address = 6;
         #10 address = 7;
 
-        for (int i = 0; i < 200; i++) begin
+        for (int i = 0; i < 256; i++) begin
             #10ns;
             data = i;
         end
 
         // Task 1
         // Change the testbench to achieve 100% coverage for covergroup_1
+        // See above
 
         // Task 2
         // Change covergroup_2's data coverpoint so that it only creates 1 bin for { 0, 1, 2, 5, 100 } instead of 5 individual bins
@@ -97,9 +100,9 @@ module lab_05 #(parameter PERIOD = 10) (
 
 
     initial begin
-        for (operations_t op = my_operation.first; op < my_operation.last; op = op.next) begin            
+        for (operations_t op = my_operation.first; op <= my_operation.last; op = op.next) begin  
             my_operation = op;
-            for (registers_t register = my_register.first; register < my_register.last; register = my_register.next) begin
+            for (registers_t register = my_register.first; register <= my_register.last; register = my_register.next) begin
                 my_register = register;
                 #10ns;
                 $display(register);
