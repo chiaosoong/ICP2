@@ -21,13 +21,14 @@ class serial_data_config extends uvm_object;
     // The monitor is active. 
     bit has_monitor = 1;
     //TASK 2.2: Parity bit enabled -> add parity bit as the 9th serial bit
-    
+    bit parity_enable;
     // serial_data uVC virtual SERIAL_DATA_IF interface.
     virtual serial_data_if m_vif;
 
     `uvm_object_utils_begin(serial_data_config)
     `uvm_field_int(is_active,UVM_ALL_ON|UVM_DEC)
     `uvm_field_int(has_monitor,UVM_ALL_ON|UVM_DEC)
+    `uvm_field_int(parity_enable,UVM_ALL_ON|UVM_DEC)
     `uvm_object_utils_end
 
     //------------------------------------------------------------------------------
