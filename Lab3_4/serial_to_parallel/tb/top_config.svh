@@ -38,7 +38,7 @@ class top_config extends uvm_object;
         m_serial_data_config.is_active = 1;
         m_serial_data_config.has_monitor = 1;
         //TASK 2:
-
+        m_serial_data_config.parity_enable = 1;
         // Create and configure parallel_data uVC configuration with only monitor
         m_parallel_data_config = new("m_parallel_data_config");
         m_parallel_data_config.is_active = 0;
