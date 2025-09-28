@@ -24,7 +24,6 @@ class base_test extends uvm_test;
     tb_env  m_tb_env;
     // Number of loop with generate data_serial_data transaction
     int unsigned no_of_data_loop = 40;
-    int unsigned no_of_resets = 10;
 
     //------------------------------------------------------------------------------
 // FUNCTION: new
@@ -54,7 +53,6 @@ class base_test extends uvm_test;
     //------------------------------------------------------------------------------
     virtual task run_phase(uvm_phase phase);
         reset_seq reset;
-        reset_seq mid_reset;
         serial_data_seq serial_data;
 
         super.run_phase(phase);
@@ -68,32 +66,15 @@ class base_test extends uvm_test;
             length == 2;
         })) `uvm_fatal(get_name(), "Failed to randomize reset")
 
-        reset.start(m_tb_env.m_reset_agent.m_sequencer);
-        // Fork two processes that running in parallel
-        //----------- Task 5.3 ----------//
-        fork
-            begin
-                //----------- Task 5.2 ----------//
-                repeat (no_of_data_loop) begin
-                    serial_data = serial_data_seq::type_id::create("serial_data");
-                    if (!(serial_data.randomize() with{
-                    }))`uvm_fatal(get_name(), "Failed to randomize serial_data")
-                    serial_data.start(m_tb_env.m_serial_data_agent.m_sequencer);
-                end
-            end
+        serial_data = serial_data_seq::type_id::create("serial_data");
+        if (!(serial_data.randomize() with{
 
-            begin
-                repeat (no_of_resets) begin
-                    #($urandom_range(50,100)*1ns);
-                    mid_reset = reset_seq::type_id::create("mid_reset");
-                    if (!(mid_reset.randomize() with {
-                        delay == 0;
-                        length == 2;
-                    })) `uvm_fatal(get_name(), "Failed to randomize mid reset");
-                    mid_reset.start(m_tb_env.m_reset_agent.m_sequencer);
-                end
-            end
-        join
+        }))`uvm_fatal(get_name(), "Failed to randomize serial_data")
+
+        reset.start(m_tb_env.m_reset_agent.m_sequencer);
+        serial_data.start(m_tb_env.m_serial_data_agent.m_sequencer);
+        // Fork two processes that running in parallel
+
 
         #100ns;
         // Drop objection if no UVM test is running

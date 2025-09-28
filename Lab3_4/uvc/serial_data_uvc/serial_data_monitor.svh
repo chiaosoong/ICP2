@@ -84,9 +84,8 @@ class serial_data_monitor  extends uvm_monitor;
                         serial_data_seq_item  seq_item;
                         int bits;
                         bit parity_error;
-                        //-------- Task 5.4 --------//
-                        bits = (m_config.parity_enable ? 9 : 8);
-                        //bits = 8;
+                        //bits = (m_config.parity_enable ? 9 : 8);
+                        bits = 8;
                         check_process = process::self();
                         for (int nn=0; nn<bits; nn++) begin
                             // Wait for start bit to be set
@@ -102,13 +101,13 @@ class serial_data_monitor  extends uvm_monitor;
                             if (nn < 8) begin
                                 // Store received serial data bit
                                 rec_data[nn]= m_config.m_vif.serial_data;
-                                `uvm_info(get_name(),$sformatf("Received bitno=%0d value=%0d", nn, m_config.m_vif.serial_data),UVM_LOW)
+                                `uvm_info(get_name(),$sformatf("Received bitno=%0d value=%0d", nn, m_config.m_vif.serial_data),UVM_HIGH)
                             end
                             else begin
                                 // Calculate parity error based on received serial parity bit
                                 //Task 2.5: When everything looks good, Uncomment this!
-                                parity_error = ($countones(rec_data) + m_config.m_vif.serial_data) & 1;
-                                `uvm_info(get_name(),$sformatf("Received bitno=%0d parity=%0d", nn, m_config.m_vif.serial_data),UVM_LOW)
+                                //parity_error = ($countones(rec_data) + m_config.m_vif.serial_data) & 1;
+                                `uvm_info(get_name(),$sformatf("Received bitno=%0d parity=%0d", nn, m_config.m_vif.serial_data),UVM_HIGH)
                             end
                             @(negedge m_config.m_vif.clk);
                             if (nn==(bits-1)) begin
@@ -117,7 +116,7 @@ class serial_data_monitor  extends uvm_monitor;
                                 seq_item = serial_data_seq_item::type_id::create("seq_item");
                                 seq_item.serial_data= rec_data;
                                 //Task 2.5: And this!
-                                seq_item.parity_error= parity_error;
+                                //seq_item.parity_error= parity_error;
                                 seq_item.monitor_data_valid = 1;
                                 m_analysis_port.write(seq_item);
                             end

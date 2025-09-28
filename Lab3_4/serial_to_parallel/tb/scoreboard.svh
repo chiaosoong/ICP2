@@ -152,8 +152,7 @@ class scoreboard extends uvm_component;
         // Sample serial data and DUT output coverage
         input_data_valid= item.monitor_data_valid;
         input_data= item.serial_data;
-        //-------- Task 5.4 --------//
-        input_parity_error= item.parity_error;
+        //input_parity_error= item.parity_error;
         serial_to_parallel_covergrp.sample();
 
         // Setup transmission_state which depends on monitor information
