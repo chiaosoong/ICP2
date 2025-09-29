@@ -5,9 +5,19 @@ import tb_pkg::*;
 //------------------------------------------------------------------------------------------------
 class RANDOMIZER;
     // Task 2: Modify this class so that we can randomize 
-    opcode op;
-    logic[7:0] operand_1;
-    logic[7:0] operand_2;
+    randc opcode op;
+    rand logic[7:0] operand_1;
+    rand logic[7:0] operand_2;
+
+    // Task6
+constraint operand_cstr {
+    if(op == ADD)  operand_1 inside {[0:255]} && operand_2 inside {[0:255 - operand_1]};
+    else if(op == SUB)  operand_1 inside {[0:255]} && operand_2 inside {[0:operand_1]};
+    else if(op == MUL)  operand_1 inside {[0:16]} && operand_2 inside {[0:16]};
+    else if(op == DIV)  operand_1 inside {[0:255]} && operand_2 inside {[1:255]};
+    else if(op == MOD)  operand_1 inside {[0:255]} && operand_2 inside {[1:255]};
+}
+
 endclass
 
 module simple_alu_tb;
@@ -108,10 +118,6 @@ module simple_alu_tb;
     // Task to simplify generation of signals.
     //------------------------------------------------------------------------------
     task automatic do_math(int a,int b,opcode code);
-        if(randy.randomize())
-            $display("Randomization done! :D");
-        else 
-           $error("Failed to randomize :(");
         $display("%0t do_math:   Opcode:%0s     First number=%0d Second Value=%0d",$time(),code.name(), a, b);
         @(posedge tb_clock);
         tb_start_bit <= 1;
@@ -119,8 +125,8 @@ module simple_alu_tb;
         tb_operand_2 <= b;
         tb_opcode<= code;
         @(posedge tb_clock);
-        tb_operand_1 <= '0;
-        tb_operand_2 <= '0;
+        // tb_operand_1 <= '0;
+        // tb_operand_2 <= '0;
         tb_start_bit <= 0;
     endtask
 
@@ -134,10 +140,36 @@ module simple_alu_tb;
             bins reset = { 0 };
             bins run=    { 1 };
         }
-    //Task 3: Expand our coverage...
-    
 
+        //Task 3: Expand our coverage...
+        opcode:coverpoint tb_opcode{
+            bins ADD = { 0 };
+            bins SUB = { 1 };
+            bins MUL = { 2 };
+            bins DIV = { 3 };
+            bins MOD = { 4 };
+        }
+
+        a:coverpoint tb_operand_1{
+            bins min  = {0};
+            bins max  = {255};
+        }
+
+        b:coverpoint tb_operand_2{
+            bins min  = {0};
+            bins max  = {255};
+        }
+
+        c:coverpoint tb_result{
+            bins min  = {0};
+            bins max  = {255};
+        }
+    
     //Task 5: Add some crosses aswell to get some granularity going!
+    op_a_cross: cross opcode, a;
+    op_b_cross: cross opcode, b;
+    op_c_cross: cross opcode, c;
+
     endgroup: basic_fcov
 
     basic_fcov coverage_instance;
@@ -153,11 +185,23 @@ module simple_alu_tb;
     task test_case();
         reset(.delay(0), .length(2));
 
-        repeat(2)
-        do_math(1,2,ADD);
+        
+        //------------ Task 2/4 ------------//
+        repeat(5) begin
+            if(randy.randomize())
+                $display("Randomization done! :D");
+            else 
+                $error("Failed to randomize :(");
+            do_math(randy.operand_1,randy.operand_2,randy.op);
+        end
 
+        //------------ Task 4 ------------//
+        do_math(0,255,MUL);
+        do_math(255,0,SUB);
+        
         reset(.delay(10), .length(2));
         // Task 1: The DUT is causing this assertion to be hit...
+        // 立即断言 immediate assertion：某个时刻立即检查一个布尔条件
         assert (tb_result == 0) 
             $display ("Output reset");
         else
