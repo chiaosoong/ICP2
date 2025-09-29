@@ -167,7 +167,10 @@ module simple_alu_tb;
     
     //Task 5: Add some crosses aswell to get some granularity going!
     op_a_cross: cross opcode, a;
-    op_b_cross: cross opcode, b;
+    op_b_cross: cross opcode, b {
+        ignore_bins div_zreo = binsof(b) intersect{0} && binsof(opcode) intersect{DIV};
+        ignore_bins mod_zreo = binsof(b) intersect{0} && binsof(opcode) intersect{MOD};
+    }
     op_c_cross: cross opcode, c;
 
     endgroup: basic_fcov
@@ -187,7 +190,7 @@ module simple_alu_tb;
 
         
         //------------ Task 2/4 ------------//
-        repeat(5) begin
+        repeat(5000) begin
             if(randy.randomize())
                 $display("Randomization done! :D");
             else 
@@ -197,11 +200,12 @@ module simple_alu_tb;
 
         //------------ Task 4 ------------//
         do_math(0,255,MUL);
+        do_math(255,0,MUL);
         do_math(255,0,SUB);
         
         reset(.delay(10), .length(2));
         // Task 1: The DUT is causing this assertion to be hit...
-        // 立即断言 immediate assertion：某个时刻立即检查一个布尔条件
+        // immediate assertion
         assert (tb_result == 0) 
             $display ("Output reset");
         else
