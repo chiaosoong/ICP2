@@ -21,12 +21,12 @@ package apb_agent_pkg;
 
     // include agent files
     `include "apb_seq_item.sv"
-    `include "apb_read_ofm_seq.sv"
-    `include "apb_write_seq.sv"
+    //`include "apb_read_ofm_seq.sv"
+    //`include "apb_write_seq.sv"
     `include "apb_mstr_agent_config.sv"
     `include "apb_mstr_driver.sv"
     `include "apb_monitor.sv"
     `include "apb_mstr_sequencer.sv"
-    //`include "apb_coverage_monitor.sv"
+    `include "apb_coverage_monitor.sv"
     `include "apb_mstr_agent.sv"
 endpackage: apb_agent_pkg

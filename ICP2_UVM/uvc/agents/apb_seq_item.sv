@@ -1,14 +1,30 @@
+// =================================================================================
+// apb_seq_item
+// Description:
+//   UVM sequence item representing a single APB transaction used by the
+//   APB master sequencer/driver. The item contains an address, data payload
+//   and an operation type (READ/WRITE). Several constraints enforce legal
+//   address choices and limit which DATA bits are meaningful for each
+//   register (so randomization does not produce illegal/unused bit patterns).
+// =================================================================================
 class apb_seq_item extends uvm_sequence_item;
-    rand bit [`ADDR_WIDTH-1:0]   ADDR;      // Address
-    rand bit [`DATA_WIDTH-1:0]   DATA;      // data
-    rand op_type_e              op_type;    // operation type
+    // Transaction fields
+    rand bit [`ADDR_WIDTH-1:0]   ADDR;      // Address (width follows `ADDR_WIDTH`)
+    rand bit [`DATA_WIDTH-1:0]   DATA;      // Data payload (width follows `DATA_WIDTH`)
+    rand op_type_e              op_type;   // Operation type enum: READ or WRITE
 
     // constructor function
     function new(string name="apb_seq_item");
         super.new(name);
     endfunction: new
     
-    // default addr constraints - only valid APB register addresses
+    // -----------------------------------------------------------------
+    // Address constraint
+    // Restricts randomized ADDR values to the set of valid APB register
+    // addresses defined in the register map (these symbols are defined in
+    // the shared package). This prevents generation of illegal addresses
+    // during randomized tests.
+    // -----------------------------------------------------------------
     constraint addr_constr{
         ADDR inside {
             DATA_ADDR,
@@ -21,14 +37,20 @@ class apb_seq_item extends uvm_sequence_item;
         };
     }
     
-    // default operation type constraints
+    // -----------------------------------------------------------------
+    // Operation type constraint
+    // Ensure op_type is either a WRITE or READ (helps randomization tools).
+    // -----------------------------------------------------------------
     constraint op_type_constr{
         op_type inside {WRITE, READ};
     }
     
-    // ADDR and OP_TYPE relationship constraints
-    // WRITE operations allowed on: DATA, INPUT_MODE, KERNEL_MODE, READ_CTRL
-    // READ operations allowed on: OUTPUT, CA_FINISHED, ALL_READ_DONE
+    // -----------------------------------------------------------------
+    // Address <-> Operation relationship
+    // Constrains which addresses can be used with WRITE vs READ operations.
+    // Example: DATA_ADDR is a write-only register while OUTPUT_ADDR is
+    // read-only. This prevents illegal op_type/ADDR combinations.
+    // -----------------------------------------------------------------
     constraint addr_op_type_constr{
         if (op_type == WRITE) {
             ADDR inside {DATA_ADDR, INPUT_MODE_ADDR, KERNEL_MODE_ADDR, READ_CTRL_ADDR};
@@ -38,10 +60,16 @@ class apb_seq_item extends uvm_sequence_item;
         }
     }
     
-    // DATA constraints based on ADDR
-    // DATA[0] for INPUT_MODE/KERNEL_MODE control bits
-    // DATA[7:0] for DATA_ADDR writes
-    // DATA[0] for READ_CTRL burst command
+    // -----------------------------------------------------------------
+    // DATA field constraints
+    // Limit which DATA bits may be driven depending on the target register.
+    // - Writes to `DATA_ADDR` only use the lower 8 bits (DATA[7:0])
+    // - Mode-control registers (`INPUT_MODE_ADDR`, `KERNEL_MODE_ADDR`) only
+    //   use bit[0] as the enable/select bit
+    // - `READ_CTRL_ADDR` uses bit[0] to trigger a burst read command
+    // These constraints zero the unused bits so randomized DATA values are
+    // meaningful for the DUT and easier to reason about in debugging.
+    // -----------------------------------------------------------------
     constraint data_constr{
         if (ADDR == DATA_ADDR) {
             DATA[31:8] == 24'h0;  // Only use lower 8 bits for data

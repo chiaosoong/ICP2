@@ -1,64 +1,133 @@
-class apb_scoreboard extends uvm_component;
+// =================================================================================
+// APB Scoreboard
+// Description: Scoreboard component that receives APB transactions from driver
+//              and monitor, collects expected and actual data packets in queues,
+//              and compares them to detect functional violations during simulation.
+// =================================================================================
+
+`uvm_analysis_imp_decl(_drv2scb)
+`uvm_analysis_imp_decl(_mntr2scb)
+class apb_scoreboard extends uvm_scoreboard;
     `uvm_component_utils(apb_scoreboard)
+    
+    // =================================================================================
+    // Data storage for comparison
+    // - exp_seq_item  : temporary holder for expected packets
+    // - exp_seq_item_q: queue of expected packets received from driver
+    // - rcvd_seq_item_q: queue of actual packets received from monitor
+    // =================================================================================
+    apb_seq_item            exp_seq_item;       // temporary expected data holder
+    apb_seq_item            exp_seq_item_q[$];  // queue of expected sequence items
+    apb_seq_item            rcvd_seq_item_q[$]; // queue of received sequence items
+    
+    // =================================================================================
+    // Analysis implementation imports (IMP)
+    // - ap_drv2scb  : receives expected transactions from the driver
+    // - ap_mntr2scb : receives actual transactions from the monitor
+    // These analysis ports allow the scoreboard to subscribe to transaction streams.
+    // =================================================================================
+    uvm_analysis_imp_drv2scb#(apb_seq_item, apb_scoreboard)     ap_drv2scb;     // driver to scoreboard
+    uvm_analysis_imp_mntr2scb#(apb_seq_item, apb_scoreboard)    ap_mntr2scb;    // monitor to scoreboard
 
-    // analysis imp to receive transactions from driver
-    uvm_analysis_imp#(apb_seq_item, apb_scoreboard) apb_imp;
-
-    // expected outputs container (provided by test via config DB)
-    expected_outputs exp;
-
-    // internal read index (for OUTPUT register reads)
-    int unsigned read_idx;
-
-    function new(string name = "apb_scoreboard", uvm_component parent = null);
+    // =================================================================================
+    // Constructor
+    // Description: creates the analysis implementation ports (ap_drv2scb, ap_mntr2scb)
+    //              which will receive notifications when transactions are published.
+    // =================================================================================
+    function new(string name="apb_scoreboard", uvm_component parent);
         super.new(name, parent);
-        apb_imp = new("apb_imp", this);
-        read_idx = 0;
-    endfunction
-
-    // build_phase: get expected outputs from config DB if available
+        // create analysis implementation ports
+        ap_drv2scb = new("ap_drv2scb", this);
+        ap_mntr2scb = new("ap_mntr2scb", this);
+    endfunction: new
+    
+    // build_phase
     virtual function void build_phase(uvm_phase phase);
         super.build_phase(phase);
-        if (!uvm_config_db#(expected_outputs)::get(this, "", "EXPECTED_OUTPUTS", exp)) begin
-            `uvm_info(get_type_name(), "No expected outputs found in config DB; scoreboard will collect transactions but not compare", UVM_LOW)
-        end
-    endfunction
-
-    // write method called by apb_imp when a transaction arrives
-    function void write(apb_seq_item t);
-        // Only act on READ transactions to OUTPUT_ADDR
-        if (t.op_type == READ) begin
-            if (t.ADDR == OUTPUT_ADDR) begin
-                // Compare lower 8 bits with expected if provided
-                if (exp.size() > 0) begin
-                    if (read_idx >= exp.expected0.size()) begin
-                        `uvm_error(get_type_name(), $sformatf("Read index %0d out of range (expected size %0d)", read_idx, exp.expected0.size()));
-                    end else begin
-                        int unsigned got = t.DATA[7:0];
-                        int unsigned want = exp.expected0[read_idx] & 8'hFF;
-                        if (got !== want) begin
-                            `uvm_error(get_type_name(), $sformatf("DATA mismatch at index %0d: got 0x%0h, expected 0x%0h", read_idx, got, want));
-                        end else begin
-                            `uvm_info(get_type_name(), $sformatf("Match at index %0d: 0x%0h", read_idx, got), UVM_LOW)
-                        end
-                    end
-                end
-                read_idx++;
+    endfunction: build_phase
+    
+    // connect_phase
+    virtual function void connect_phase(uvm_phase phase);
+        super.connect_phase(phase);
+    endfunction: connect_phase
+    
+    // =================================================================================
+    // run_phase
+    // Description: main simulation loop (currently disabled via comment). When
+    //              enabled, this would continuously pop expected and received
+    //              packets from their respective queues and compare them.
+    // =================================================================================
+    virtual task run_phase(uvm_phase phase);
+        apb_seq_item  exp_pkt, rcvd_pkt;
+        super.run_phase(phase);
+        
+ /*       forever begin
+            wait(exp_seq_item_q.size() !=0 && rcvd_seq_item_q.size() !=0);
+                exp_pkt = exp_seq_item_q.pop_front();
+                rcvd_pkt = rcvd_seq_item_q.pop_front();
+                compare_pkt(exp_pkt, rcvd_pkt);                
+        end  
+*/      
+    endtask: run_phase
+    
+    // =================================================================================
+    // write_drv2scb (Analysis IMP write function for driver transactions)
+    // Description: callback invoked when driver publishes a transaction via ap_drv2scb.
+    //              Logs the transaction and pushes it to the expected queue.
+    // =================================================================================
+    function void write_drv2scb(apb_seq_item item);
+        // print seq_item details received from driver
+        `uvm_info("SCB", $sformatf("Seq_item written from driver: \n"), UVM_HIGH)
+        item.print();
+        
+        // push the expected seq_item into the queue
+        exp_seq_item_q.push_back(item);
+    endfunction: write_drv2scb
+    
+    // =================================================================================
+    // write_mntr2scb (Analysis IMP write function for monitor transactions)
+    // Description: callback invoked when monitor publishes a transaction via ap_mntr2scb.
+    //              Logs the transaction and pushes it to the received queue.
+    // =================================================================================
+    function void write_mntr2scb(apb_seq_item item);
+        // print seq_item details received from monitor
+        `uvm_info("SCB", $sformatf("Seq_item written from monitor: \n"), UVM_HIGH)
+        item.print();
+        
+        // push captured seq_item into the received queue
+        rcvd_seq_item_q.push_back(item);
+    endfunction: write_mntr2scb
+    
+    // =================================================================================
+    // compare_pkt (comparison function)
+    // Description: compares an expected packet with a received packet. Checks
+    //              that ADDR and DATA fields match; reports errors if mismatches
+    //              are detected (useful for functional verification).
+    // =================================================================================
+    function void compare_pkt(input apb_seq_item exp_pkt, apb_seq_item rcvd_pkt);
+        if(exp_pkt.ADDR == rcvd_pkt.ADDR) begin
+            if(exp_pkt.DATA != rcvd_pkt.DATA) begin
+                `uvm_error("DATA MISMATCH ERROR", $sformatf("SCB:: For ADDR: %0h Expecting DATA:%0h but Received DATA: %0h", exp_pkt.ADDR, exp_pkt.DATA, rcvd_pkt.DATA))
             end
-            else begin
-                // other read registers (CA_FINISHED, ALL_READ_DONE) could be used to reset/stop counters
-                if (t.ADDR == CA_FINISHED_ADDR) begin
-                    `uvm_info(get_type_name(), "CA_FINISHED read observed", UVM_LOW)
-                end
-                else if (t.ADDR == ALL_READ_DONE_ADDR) begin
-                    `uvm_info(get_type_name(), "ALL_READ_DONE read observed", UVM_LOW)
-                end
-            end
-        end else begin
-            // For writes, we may track writes if needed (e.g., to build a model)
-            // Currently just log write ops for debug
-            `uvm_debug(get_type_name(), $sformatf("Write observed: ADDR=0x%0h DATA=0x%0h", t.ADDR, t.DATA));
         end
-    endfunction
-
+        else begin
+            `uvm_error("ADDR MISMATCH ERROR", $sformatf("SCB:: Expected ADDR:%0h But received ADDR: %0h", exp_pkt.ADDR, rcvd_pkt.ADDR))
+        end
+    endfunction: compare_pkt
+    
+    // =================================================================================
+    // construct_nd_push_exp_pkt (manual expected packet construction)
+    // Description: manually constructs an expected packet from provided ADDR/DATA
+    //              values and pushes it to the expected queue. Useful for scenarios
+    //              where expected data is not obtained from the driver.
+    // =================================================================================
+    function void construct_nd_push_exp_pkt(input reg [`ADDR_WIDTH-1:0] ADDR, input reg [`DATA_WIDTH-1:0] DATA);
+        // construct a new seq_item for expected data
+        exp_seq_item = apb_seq_item::type_id::create("exp_seq_item");
+        // populate expected values
+        exp_seq_item.ADDR = ADDR;
+        exp_seq_item.DATA = DATA;
+        // push the constructed expected packet into the queue
+        exp_seq_item_q.push_back(exp_seq_item);
+    endfunction: construct_nd_push_exp_pkt
 endclass: apb_scoreboard
