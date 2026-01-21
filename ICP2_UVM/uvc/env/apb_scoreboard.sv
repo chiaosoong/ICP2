@@ -24,7 +24,7 @@ class apb_scoreboard extends uvm_scoreboard;
     // ----- storage collected from analysis ports -----
     // flat list of DATA payloads observed on writes to DATA_ADDR
     bit [`DATA_WIDTH-1:0] drv_data[$];
-    
+
     // Queue for expected packets (used by construct_nd_push_exp_pkt)
     apb_seq_item exp_seq_item_q[$];
     // Queue for received packets (from monitor)
@@ -59,16 +59,16 @@ class apb_scoreboard extends uvm_scoreboard;
     // run_phase does not perform immediate comparisons; comparisons are
     // triggered on-demand by calling `compare_saved_data()` from a test.
     virtual task run_phase(uvm_phase phase);
-        apb_seq_item exp_pkt;
-        apb_seq_item rcvd_pkt;
-        
+        //apb_seq_item exp_pkt;
+        //apb_seq_item rcvd_pkt;
+
         super.run_phase(phase);
         /*
         forever begin
             wait(exp_seq_item_q.size() != 0 && rcvd_seq_item_q.size() != 0);
             exp_pkt = exp_seq_item_q.pop_front();
             rcvd_pkt = rcvd_seq_item_q.pop_front();
-            compare_pkt(exp_pkt, rcvd_pkt);                
+            compare_pkt(exp_pkt, rcvd_pkt);
         end
         */
     endtask
@@ -86,8 +86,9 @@ class apb_scoreboard extends uvm_scoreboard;
         `uvm_info("SCB_FLUSH", "Scoreboard data flushed.", UVM_LOW)
     endfunction
 
+    /*
     // -----------------------------------------------------------------
-    // construct_nd_push_exp_pkt: 
+    // construct_nd_push_exp_pkt:
     // Helper function to manually add expected packets to the scoreboard.
     // This is typically called by the test to provide "golden" data for comparison.
     // -----------------------------------------------------------------
@@ -101,6 +102,7 @@ class apb_scoreboard extends uvm_scoreboard;
         // push exp_pkt in queue
         exp_seq_item_q.push_back(exp_seq_item);
     endfunction: construct_nd_push_exp_pkt
+    */
 
     // -----------------------------------------------------------------
     // write_drv2scb: called when driver/monitor publishes an apb_seq_item
@@ -137,8 +139,9 @@ class apb_scoreboard extends uvm_scoreboard;
         `uvm_info("SCB_MNTR", $sformatf("Monitor saw op=%0d ADDR=0x%0h DATA=0x%0h", item.op_type, item.ADDR, item.DATA), UVM_DEBUG);
     endfunction
 
+    /*
     // -----------------------------------------------------------------
-    // compare_pkt: 
+    // compare_pkt:
     // Compares expected packet with received packet
     // -----------------------------------------------------------------
     function void compare_pkt(apb_seq_item exp_pkt, apb_seq_item rcvd_pkt);
@@ -151,6 +154,7 @@ class apb_scoreboard extends uvm_scoreboard;
             `uvm_info("SCB_CMP_PASS", $sformatf("Match! Addr=0x%0h Data=0x%0h", exp_pkt.ADDR, exp_pkt.DATA), UVM_HIGH)
         end
     endfunction
+    */
 
     // -----------------------------------------------------------------
     // compare_saved_data: simple on-demand comparison
@@ -173,7 +177,7 @@ class apb_scoreboard extends uvm_scoreboard;
                 // Lane 1 -> Ch1 (Offset 784)
                 // Lane 2 -> Ch2 (Offset 1568)
                 int unsigned drv_idx = lane * ifm_per_ch + i;
-                
+
                 if (drv_idx >= drv_data.size()) begin
                     `uvm_error("SCB_COMPARE_IFM", $sformatf("Missing driver IFM data for CA item %0d lane %0d (idx=%0d)", i, lane, drv_idx));
                     mismatches++;
@@ -194,7 +198,7 @@ class apb_scoreboard extends uvm_scoreboard;
         // compare kernel: CA kernel items map similarly (block-wise after IFM)
         // Limit comparison to expected number of kernel items (9) to avoid issues with extra captures
         k_limit = (ca_kernel_items.size() > ker_per_ch) ? ker_per_ch : ca_kernel_items.size();
-        
+
         `uvm_info("SCB_COMPARE", "Starting Kernel Comparison...", UVM_LOW)
         for (int unsigned i = 0; i < k_limit; i++) begin
             for (int lane = 0; lane < 3; lane++) begin
